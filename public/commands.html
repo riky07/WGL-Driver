@@ -1,0 +1,43 @@
+<html>
+	<head>
+		<title>WG-Driver</title>
+		<link rel="stylesheet" type="text/css" href="commands.css">
+		<script src="/socket.io/socket.io.js"></script>
+	</head>
+	<body>
+		<div id="content">
+				<div id="btn-left"><button>Accelerates</button></div>
+				<div id="btn-right"><button>Brake</button></div>
+		</div>
+		<script>
+			var bAcc = document.getElementById("btn-left");
+			var bBack = document.getElementById("btn-right");
+
+			var socket = io.connect();
+			var pos = { acc: false, back: false };
+
+			window.ondeviceorientation = function() {
+				pos.x = Math.floor(event.alpha);
+				pos.y = Math.floor(event.beta);
+				pos.z = Math.floor(event.gamma);
+			};
+
+			var up = function(i) {
+				pos.acc = i;
+			};
+
+			var down = function(i) {
+				pos.back = i;
+			};
+
+			setInterval(function() {
+				socket.emit('sendCord', pos);
+			}, 8);
+
+			bAcc.addEventListener('touchstart', function() { up(true); }, false);
+			bAcc.addEventListener('touchend', function() { up(false); }, false);
+
+			bBack.addEventListener('touchstart', function() { down(true); }, false);
+			bBack.addEventListener('touchend', function() { down(false); }, false);
+		</script>
+	</body>

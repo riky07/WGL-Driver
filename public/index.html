@@ -1,0 +1,341 @@
+<html><head><title>City5</title></head><body>
+<style type="text/css">html, body {margin: 0;}</style>
+<script src="js/Three.js"></script>
+<script src="js/Detector.js"></script>
+<script src="js/THREEx.KeyboardState.js"></script>
+<script src="js/THREEx.WindowResize.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+if (!Detector.webgl) Detector.addGetWebGLMessage();
+var socket = io.connect();
+var renderer,scene,camera,keyboard=new THREEx.KeyboardState(),clock=new THREE.Clock();
+var topskyscrapertexture,skyscraper1texture,skyscraper2texture,planetexture;
+var car,backwheels;
+var speed=0,rotate=3;
+loadtexture();
+init();
+animate();
+function loadtexture()
+{
+    topskyscrapertexture=new THREE.ImageUtils.loadTexture('textures/topskyscraper.jpg');
+    skyscraper1texture=new THREE.ImageUtils.loadTexture('textures/skyscraper1.jpg');
+    skyscraper2texture=new THREE.ImageUtils.loadTexture('textures/skyscraper2.jpg');
+    planetexture=new THREE.ImageUtils.loadTexture('textures/plane.jpg');
+}
+function init()
+{
+    scene=new THREE.Scene();
+    //==========RENDER
+    renderer=new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(window.innerWidth,window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    //==========MESH
+    var skyscraper1material=[];
+    skyscraper1material.push(new THREE.MeshBasicMaterial({map:skyscraper1texture}));
+    skyscraper1material.push(new THREE.MeshBasicMaterial({map:skyscraper1texture}));
+    skyscraper1material.push(new THREE.MeshBasicMaterial({map:topskyscrapertexture}));
+    skyscraper1material.push(new THREE.MeshBasicMaterial());
+    skyscraper1material.push(new THREE.MeshBasicMaterial({map:skyscraper1texture}));
+    skyscraper1material.push(new THREE.MeshBasicMaterial({map:skyscraper1texture}));
+    var skyscraper2material=[];
+    skyscraper2material.push(new THREE.MeshBasicMaterial({map:skyscraper2texture}));
+    skyscraper2material.push(new THREE.MeshBasicMaterial({map:skyscraper2texture}));
+    skyscraper2material.push(new THREE.MeshBasicMaterial({map:topskyscrapertexture}));
+    skyscraper2material.push(new THREE.MeshBasicMaterial());
+    skyscraper2material.push(new THREE.MeshBasicMaterial({map:skyscraper2texture}));
+    skyscraper2material.push(new THREE.MeshBasicMaterial({map:skyscraper2texture}));
+    var skyscraper1=new THREE.CubeGeometry(8,21,8,1,1,1,skyscraper1material);
+    var skyscraper2=new THREE.CubeGeometry(6,16,6,1,1,1,skyscraper2material);
+    var skyscraper1posz=21/2,skyscraper2posz=16/2;
+    var plane=new THREE.Mesh(new THREE.PlaneGeometry(60,50),new THREE.MeshBasicMaterial({map:planetexture}));
+    plane.position.set(0,0,0);
+    plane.doubleSided=false;
+    scene.add(plane);
+    var sky=new THREE.Mesh(new THREE.CubeGeometry(60,30,50),new THREE.MeshBasicMaterial({color:0x9999FF}));
+    sky.position.set(0,14.9,0);
+    sky.flipSided=true;
+    scene.add(sky);
+    var cube0=new THREE.Mesh(skyscraper1,new THREE.MeshFaceMaterial());
+    cube0.position.set(-23,skyscraper1posz,20);
+    scene.add(cube0);
+    var cube1=new THREE.Mesh(skyscraper2,new THREE.MeshFaceMaterial());
+    cube1.position.set(-12,skyscraper2posz,21);
+    scene.add(cube1);
+    var cube2=new THREE.Mesh(skyscraper1,new THREE.MeshFaceMaterial());
+    cube2.position.set(-14,skyscraper1posz,5);
+    scene.add(cube2);
+    var cube3=new THREE.Mesh(skyscraper2,new THREE.MeshFaceMaterial());
+    cube3.position.set(-15,skyscraper2posz,-9);
+    scene.add(cube3);
+    var cube4=new THREE.Mesh(skyscraper2,new THREE.MeshFaceMaterial());
+    cube4.position.set(0,skyscraper2posz,-12);
+    scene.add(cube4);
+    var cube5=new THREE.Mesh(skyscraper1,new THREE.MeshFaceMaterial());
+    cube5.position.set(14,skyscraper1posz,-12);
+    scene.add(cube5);
+    var cube6=new THREE.Mesh(skyscraper2,new THREE.MeshFaceMaterial());
+    cube6.position.set(6,skyscraper2posz,1);
+    scene.add(cube6);
+    var cube7=new THREE.Mesh(skyscraper1,new THREE.MeshFaceMaterial());
+    cube7.position.set(15,skyscraper1posz,14);
+    scene.add(cube7);
+    var cube8=new THREE.Mesh(skyscraper2,new THREE.MeshFaceMaterial());
+    cube8.position.set(6,skyscraper2posz,15);
+    scene.add(cube8);
+    var jsonLoader=new THREE.JSONLoader();
+    jsonLoader.load('car.js',addcar);
+    jsonLoader.load('backwheels.js',addbackwheels);
+    jsonLoader.load('js/lamp.js',addlamp);
+    //==========LIGHT
+    var light=new THREE.PointLight(0xFFFFFF);
+    light.position.set(60,30,50);
+    scene.add(light);
+    light=new THREE.PointLight(0xFFFFFF);
+    light.position.set(-60,30,50);
+    scene.add(light);
+    light=new THREE.PointLight(0xFFFFFF);
+    light.position.set(-60,30,-50);
+    scene.add(light);
+    light=new THREE.PointLight(0xFFFFFF);
+    light.position.set(60,30,-50);
+    scene.add(light);
+    //==========CAMERA
+    camera=new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,2000);
+    camera.position.set(30,3,20.5);
+    //camera.lookAt(car.position);
+    scene.add(camera);
+    //==========EVENTS
+    THREEx.WindowResize(renderer,camera);
+
+    socket.on('changePos', function(data) {
+        console.log(data);
+
+        if (data.acc)
+            u();
+
+        if (data.back)
+            d();
+        // Gira in base a data.x data.y data.z
+        var delta=clock.getDelta();
+        var rotation_matrix;
+        if (data.x<10) rotate=6*Math.sin((10*Math.PI/180)/68)+3;
+        else if (data.x<107) rotate=6*Math.sin((data.x*Math.PI/180)/68)+3;
+        else if (data.x>204) rotate=-(6*Math.sin((204*Math.PI/180)/68)+3);
+        else rotate=-(6*Math.sin((data.x*Math.PI/180)/68)+3);
+        if (speed!=0)
+        {
+            rotation_matrix=new THREE.Matrix4();
+            if (speed>0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+            else if (speed<0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+            rotation_matrix.multiplySelf(car.matrix);
+            car.matrix=rotation_matrix;
+            car.rotation.getRotationFromMatrix(car.matrix,car.scale);
+            rotation_matrix=new THREE.Matrix4();
+            if (speed>0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+            else if (speed<0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+            rotation_matrix.multiplySelf(backwheels.matrix);
+            backwheels.matrix=rotation_matrix;
+            backwheels.rotation.getRotationFromMatrix(backwheels.matrix,backwheels.scale);
+        }
+    });
+}
+function addcar(carmodel)
+{
+    car=new THREE.Mesh(carmodel,new THREE.MeshFaceMaterial());
+    car.position.set(19,0,20.5);
+    car.scale.set(0.3,0.3,0.3);
+    scene.add(car);
+    camera.lookAt(car.position);
+}
+function addbackwheels(wheelmodel)
+{
+    backwheels=new THREE.Mesh(wheelmodel,new THREE.MeshFaceMaterial());
+    backwheels.position.set(19,0,20.5);
+    backwheels.scale.set(0.3,0.3,0.3);
+    scene.add(backwheels);
+}
+function addlamp(lamp)
+{
+    var material=new THREE.MeshFaceMaterial();
+    var lamp0=new THREE.Mesh(lamp,material);
+    lamp0.position.set(0.5,0,19);
+    lamp0.scale.set(0.3,0.3,0.3);
+    scene.add(lamp0);
+    var lamp1=new THREE.Mesh(lamp,material);
+    lamp1.position.set(-21.5,0,11.5);
+    lamp1.scale.set(0.3,0.3,0.3);
+    scene.add(lamp1);
+    var lamp2=new THREE.Mesh(lamp,material);
+    lamp2.position.set(-21.5,0,-8);
+    lamp2.scale.set(0.3,0.3,0.3);
+    lamp2.rotation.y=-90*(Math.PI/180);
+    scene.add(lamp2);
+    var lamp3=new THREE.Mesh(lamp,material);
+    lamp3.position.set(-10,0,-17);
+    lamp3.scale.set(0.3,0.3,0.3);
+    lamp3.rotation.y=180*(Math.PI/180);
+    scene.add(lamp3);
+    var lamp4=new THREE.Mesh(lamp,material);
+    lamp4.position.set(10,0,-17);
+    lamp4.scale.set(0.3,0.3,0.3);
+    lamp4.rotation.y=180*(Math.PI/180);
+    scene.add(lamp4);
+    var lamp5=new THREE.Mesh(lamp,material);
+    lamp5.position.set(20,0,-7);
+    lamp5.scale.set(0.3,0.3,0.3);
+    lamp5.rotation.y=90*(Math.PI/180);
+    scene.add(lamp5);
+    var lamp6=new THREE.Mesh(lamp,material);
+    lamp6.position.set(-2,0,0);
+    lamp6.scale.set(0.3,0.3,0.3);
+    lamp6.rotation.y=-90*(Math.PI/180);
+    scene.add(lamp6);
+    var lamp7=new THREE.Mesh(lamp,material);
+    lamp7.position.set(18,0,5);
+    lamp7.scale.set(0.3,0.3,0.3);
+    scene.add(lamp7);
+}
+function animate()
+{
+    requestAnimationFrame(animate);
+    renderer.render(scene,camera);
+    update();
+}
+function update()
+{
+    var delta=clock.getDelta();
+    if (keyboard.pressed('W') || keyboard.pressed('up'))
+    {
+        u();
+    }
+    if (keyboard.pressed('S') || keyboard.pressed('down'))
+    {
+        d();
+    }
+    if (keyboard.pressed('A') || keyboard.pressed('left'))
+    {
+        //l();
+        //var delta=clock.getDelta();
+        var rotation_matrix;
+        if (speed!=0)
+        {
+            rotation_matrix=new THREE.Matrix4();
+            if (speed>0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+            else if (speed<0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+            rotation_matrix.multiplySelf(car.matrix);
+            car.matrix=rotation_matrix;
+            car.rotation.getRotationFromMatrix(car.matrix,car.scale);
+            rotation_matrix=new THREE.Matrix4();
+            if (speed>0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+            else if (speed<0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+            rotation_matrix.multiplySelf(backwheels.matrix);
+            backwheels.matrix=rotation_matrix;
+            backwheels.rotation.getRotationFromMatrix(backwheels.matrix,backwheels.scale);
+        }
+    }
+    if (keyboard.pressed('D') || keyboard.pressed('right'))
+    {
+        //r();
+        //var delta=clock.getDelta();
+        var rotation_matrix;
+        if (speed!=0)
+        {
+            rotation_matrix=new THREE.Matrix4();
+            if (speed>0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+            else if (speed<0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+            rotation_matrix.multiplySelf(car.matrix);
+            car.matrix=rotation_matrix;
+            car.rotation.getRotationFromMatrix(car.matrix,car.scale);
+            rotation_matrix=new THREE.Matrix4();
+            if (speed>0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+            else if (speed<0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+            rotation_matrix.multiplySelf(backwheels.matrix);
+            backwheels.matrix=rotation_matrix;
+            backwheels.rotation.getRotationFromMatrix(backwheels.matrix,backwheels.scale);
+        }
+    }
+    if (!keyboard.pressed('W') && !keyboard.pressed('up') && !keyboard.pressed('S') && !keyboard.pressed('down'))
+    {
+        n();
+    }
+    car.translateX(-speed*delta);
+    backwheels.translateX(-speed*delta);
+    var relativeCameraOffset=new THREE.Vector3(7,2,0);
+    //var relativeCameraOffset=new THREE.Vector3(5,2,5);
+    var cameraOffset=car.matrixWorld.multiplyVector3(relativeCameraOffset);
+    camera.position.set(cameraOffset.x,cameraOffset.y,cameraOffset.z);
+    camera.lookAt(car.position);
+}
+function u()
+{
+    if (speed<=10)
+    {
+        if (speed>=0) speed+=0.07;
+        else speed+=0.5;
+    }
+}
+function d()
+{
+    if (speed>=-3)
+    {
+        if (speed>=0) speed-=0.1;
+        else speed-=0.5;
+    }
+}
+/*function l()
+{
+    var delta=clock.getDelta();
+    var rotation_matrix;
+    if (speed!=0)
+    {
+        rotation_matrix=new THREE.Matrix4();
+        if (speed>0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+        else if (speed<0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+        rotation_matrix.multiplySelf(car.matrix);
+        car.matrix=rotation_matrix;
+        car.rotation.getRotationFromMatrix(car.matrix,car.scale);
+        rotation_matrix=new THREE.Matrix4();
+        if (speed>0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+        else if (speed<0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+        rotation_matrix.multiplySelf(backwheels.matrix);
+        backwheels.matrix=rotation_matrix;
+        backwheels.rotation.getRotationFromMatrix(backwheels.matrix,backwheels.scale);
+    }
+}
+function r()
+{
+    var delta=clock.getDelta();
+    var rotation_matrix;
+    if (speed!=0)
+    {
+        rotation_matrix=new THREE.Matrix4();
+        if (speed>0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+        else if (speed<0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+        rotation_matrix.multiplySelf(car.matrix);
+        car.matrix=rotation_matrix;
+        car.rotation.getRotationFromMatrix(car.matrix,car.scale);
+        rotation_matrix=new THREE.Matrix4();
+        if (speed>0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+        else if (speed<0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+        rotation_matrix.multiplySelf(backwheels.matrix);
+        backwheels.matrix=rotation_matrix;
+        backwheels.rotation.getRotationFromMatrix(backwheels.matrix,backwheels.scale);
+    }
+}*/
+function n()
+{
+    if (speed!=0)
+    {
+        if (speed<0)
+        {
+            if (speed>-0.03) speed=0;
+            else speed+=0.03;
+        }
+        else if (speed>0)
+        {
+            if (speed<0.03) speed=0;
+            else speed-=0.03;
+        }
+    }
+}
+</script></body></html>
