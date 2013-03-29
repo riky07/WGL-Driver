@@ -1,5 +1,4 @@
-<html><head><title>City5</title></head><body>
-<style type="text/css">html, body {margin: 0;}</style>
+<html><head><title>City5</title></head><body><style type="text/css">body{margin:0;}</style>
 <script src="js/Three.js"></script>
 <script src="js/Detector.js"></script>
 <script src="js/THREEx.KeyboardState.js"></script>
@@ -11,7 +10,7 @@ var socket = io.connect();
 var renderer,scene,camera,keyboard=new THREEx.KeyboardState(),clock=new THREE.Clock();
 var topskyscrapertexture,skyscraper1texture,skyscraper2texture,planetexture;
 var car,backwheels;
-var speed=0,rotate=3;
+var speed=0,rotate=3,igreca;
 loadtexture();
 init();
 animate();
@@ -108,35 +107,20 @@ function init()
     THREEx.WindowResize(renderer,camera);
 
     socket.on('changePos', function(data) {
-        console.log(data);
-
+        //console.log(data);
         if (data.acc)
             u();
 
         if (data.back)
-            d();
+            d(); 
         // Gira in base a data.x data.y data.z
-        var delta=clock.getDelta();
-        var rotation_matrix;
-        if (data.x<10) rotate=6*Math.sin((10*Math.PI/180)/68)+3;
-        else if (data.x<107) rotate=6*Math.sin((data.x*Math.PI/180)/68)+3;
-        else if (data.x>204) rotate=-(6*Math.sin((204*Math.PI/180)/68)+3);
-        else rotate=-(6*Math.sin((data.x*Math.PI/180)/68)+3);
-        if (speed!=0)
-        {
-            rotation_matrix=new THREE.Matrix4();
-            if (speed>0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
-            else if (speed<0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
-            rotation_matrix.multiplySelf(car.matrix);
-            car.matrix=rotation_matrix;
-            car.rotation.getRotationFromMatrix(car.matrix,car.scale);
-            rotation_matrix=new THREE.Matrix4();
-            if (speed>0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
-            else if (speed<0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
-            rotation_matrix.multiplySelf(backwheels.matrix);
-            backwheels.matrix=rotation_matrix;
-            backwheels.rotation.getRotationFromMatrix(backwheels.matrix,backwheels.scale);
-        }
+        igreca=data.gr;
+        if (igreca<-500) rotate=-(10*Math.cos(-400/340));
+        else if (igreca<0) rotate=-(10*Math.cos(igreca/340));
+        else if (igreca>500) rotate=10*Math.cos(400/340);
+        else rotate=10*Math.cos(igreca/340);
+        console.log(igreca);
+        console.log(rotate);
     });
 }
 function addcar(carmodel)
@@ -204,6 +188,22 @@ function animate()
 function update()
 {
     var delta=clock.getDelta();
+    var rotation_matrix;
+    if ((speed>=0.5 || speed<=-0.5) && (igreca>50 || igreca<-50))
+    {
+        rotation_matrix=new THREE.Matrix4();
+        if (speed>0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+        else if (speed<0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+        rotation_matrix.multiplySelf(car.matrix);
+        car.matrix=rotation_matrix;
+        car.rotation.getRotationFromMatrix(car.matrix,car.scale);
+        rotation_matrix=new THREE.Matrix4();
+        if (speed>0) rotation_matrix.makeRotationY(Math.PI/rotate*delta);
+        else if (speed<0) rotation_matrix.makeRotationY(-Math.PI/rotate*delta);
+        rotation_matrix.multiplySelf(backwheels.matrix);
+        backwheels.matrix=rotation_matrix;
+        backwheels.rotation.getRotationFromMatrix(backwheels.matrix,backwheels.scale);
+    }
     if (keyboard.pressed('W') || keyboard.pressed('up'))
     {
         u();
@@ -268,7 +268,7 @@ function update()
 }
 function u()
 {
-    if (speed<=10)
+    if (speed<=8)
     {
         if (speed>=0) speed+=0.07;
         else speed+=0.5;
