@@ -268,18 +268,18 @@ function update()
 }
 function u()
 {
-    if (speed<=8)
+    if (speed<=6)
     {
-        if (speed>=0) speed+=0.07;
-        else speed+=0.5;
+        if (speed>=0) speed+=0.04;
+        else speed+=0.05;
     }
 }
 function d()
 {
-    if (speed>=-3)
+    if (speed>=-2)
     {
-        if (speed>=0) speed-=0.1;
-        else speed-=0.5;
+        if (speed>=0) speed-=0.05;
+        else speed-=0.04;
     }
 }
 /*function l()
@@ -329,12 +329,12 @@ function n()
         if (speed<0)
         {
             if (speed>-0.03) speed=0;
-            else speed+=0.03;
+            else speed+=0.015;
         }
         else if (speed>0)
         {
             if (speed<0.03) speed=0;
-            else speed-=0.03;
+            else speed-=0.015;
         }
     }
 }
