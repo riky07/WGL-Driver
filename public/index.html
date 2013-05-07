@@ -115,12 +115,13 @@ function init()
             d(); 
         // Gira in base a data.x data.y data.z
         igreca=data.gr;
-        if (igreca<-500) rotate=-(10*Math.cos(-400/340));
-        else if (igreca<0) rotate=-(10*Math.cos(igreca/340));
-        else if (igreca>500) rotate=10*Math.cos(400/340);
+        if (igreca<-500) rotate=-(12*Math.cos(-400/340));
+        else if (igreca<0) rotate=-(12*Math.cos(igreca/340));
+        else if (igreca>500) rotate=12*Math.cos(400/340);
         else rotate=10*Math.cos(igreca/340);
         console.log(igreca);
         console.log(rotate);
+        console.log(gr);
     });
 }
 function addcar(carmodel)
@@ -278,8 +279,8 @@ function d()
 {
     if (speed>=-2)
     {
-        if (speed>=0) speed-=0.05;
-        else speed-=0.04;
+        if (speed>=0) speed-=0.03;
+        else speed-=0.02;
     }
 }
 /*function l()
